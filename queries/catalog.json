@@ -252,7 +252,6 @@
     {
       "id": "zombie-assets",
       "title": "Zombie Assets",
-      "savedFilterName": "Zombie Assets",
       "category": "Insight Classifications",
       "query": "asset.Classifications IN [\"Zombie\"]",
       "description": "Assets that UAI has itself classified as zombies — present and consuming address space or resources, but showing none of the signals of something genuinely in service. The product's own answer to the 'retired but still connected' problem, without needing a CMDB integration to find it.",
@@ -288,7 +287,6 @@
     {
       "id": "orphaned-assets",
       "title": "Orphaned Assets",
-      "savedFilterName": "Orphaned Assets",
       "category": "Insight Classifications",
       "query": "asset.SubClassifications IN [\"Orphan\"]",
       "description": "Assets with no owning parent resource — typically cloud objects left behind when the thing that created them was deleted. They keep costing money and keep holding addresses.",
@@ -389,7 +387,6 @@
     {
       "id": "unclassified-assets",
       "title": "Unclassified Assets",
-      "savedFilterName": "Unclassified Assets",
       "category": "Discovery Hygiene",
       "query": "asset.Type IN [\"Unclassified\"]",
       "description": "Assets present on the network that UAI could not assign a device type to. Each one is something connected that nobody can describe — the raw material of every shadow-IT and unmanaged-device conversation.",
@@ -579,7 +576,6 @@
     {
       "id": "cloud-assets",
       "title": "Cloud-Hosted Assets",
-      "savedFilterName": "Cloud-Hosted Assets",
       "category": "Estate Composition",
       "query": "asset.LocationType IN [\"Cloud\"]",
       "description": "Everything UAI places in a cloud provider rather than on-premises. The starting point for splitting any other finding along the cloud/on-prem boundary, which is usually where ownership changes hands.",

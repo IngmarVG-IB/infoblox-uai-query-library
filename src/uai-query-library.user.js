@@ -86,13 +86,12 @@
    * Saved Filter names are capped at 50 characters. Measured, not guessed: a
    * 50-character name saves and a 51-character one does not — and the UI gives
    * no error when it refuses, it just silently does nothing. Hence both the
-   * truncation here and the read-back check in saveAsFilter.
+   * truncation here and the read-back check in installFlow.
    */
   const SAVED_FILTER_MAX_NAME = 50;
 
-  function savedFilterNameFor(entry) {
+  function savedFilterNameFor(entry, prefix) {
     const base = entry.savedFilterName || entry.title;
-    const prefix = savedFilterPrefix();
     const full = prefix ? `${prefix} ${base}` : base;
     return full.length <= SAVED_FILTER_MAX_NAME ? full : full.slice(0, SAVED_FILTER_MAX_NAME).trimEnd();
   }
@@ -344,9 +343,11 @@
     },
 
     /**
-     * Names of the Saved Filters currently visible in the picker that
-     * `isMine(line)` accepts. Matching is by predicate rather than by prefix,
-     * so it still works when the prefix has been turned off.
+     * Names of the Saved Filters in the picker that `isMine(line)` accepts.
+     * Reads only the overlay the picker opens in: the library panel and the
+     * toasts sit on document.body and show the same names as query titles, so
+     * reading the whole page would "find" filters that were never saved.
+     * Returns null if the list cannot be read, which callers treat as unknown.
      */
     async listSavedFilterNames(isMine) {
       const link = this.button('Saved Filters');
@@ -357,12 +358,15 @@
         .find((e) => e.offsetParent && !e.children.length && /see all/i.test(e.textContent.trim()));
       if (seeAll) { seeAll.click(); await sleep(2000); }
 
+      const overlay = document.querySelector('.cdk-overlay-container');
+      if (!overlay) return null;
+
       // The list virtualises, so scroll it through to see every row.
-      const pane = [...document.querySelectorAll('div')]
+      const pane = [...overlay.querySelectorAll('div')]
         .filter((d) => d.offsetParent && d.scrollHeight > d.clientHeight + 50)
         .pop();
       const names = new Set();
-      const harvest = () => document.body.innerText.split('\n')
+      const harvest = () => overlay.innerText.split('\n')
         .map((s) => s.trim())
         .filter((s) => s && isMine(s))
         .forEach((s) => names.add(s));
@@ -641,36 +645,64 @@
 
   /**
    * Writes selected queries into the tenant as native Saved Filters. This is the
-   * only thing the script does that changes the tenant, so it asks first, names
-   * everything with a visible prefix, and skips anything parameterised (a saved
+   * only thing the script does that changes the tenant, so it asks first, skips
+   * any name the tenant already has, and skips anything parameterised (a saved
    * filter would freeze today's date into the query and quietly go stale).
    */
   async function installFlow() {
     const eligible = allQueries().filter((q) => !q.params?.length);
     const skipped = allQueries().length - eligible.length;
+    const prefix = savedFilterPrefix();
+
+    // Names must be unique for the read-back to mean anything. A long custom
+    // prefix can truncate two names to the same 50 characters.
+    const wanted = new Map();
+    const failures = [];
+    let truncated = 0;
+    for (const q of eligible) {
+      const name = savedFilterNameFor(q, prefix);
+      const base = q.savedFilterName || q.title;
+      if (name.length < (prefix ? `${prefix} ${base}` : base).length) truncated++;
+      if (wanted.has(name)) {
+        failures.push(`${q.title}: name "${name}" is the same as "${wanted.get(name).title}" after truncation; not saved`);
+      } else {
+        wanted.set(name, q);
+      }
+    }
 
     const ok = W.confirm(
-      `Create ${eligible.length} Saved Filters in the tenant you are signed in to?\n\n`
-      + (savedFilterPrefix()
-        ? `Each is named with the "${savedFilterPrefix()}" prefix so they are easy to find and remove.\n\n`
-        : `They are named after the queries, with no prefix, so look for them by name when you want to remove them.\n\n`)
+      `Create ${wanted.size} Saved Filters in the tenant you are signed in to?\n\n`
+      + (prefix
+        ? `Each is named with the "${prefix}" prefix so they are easy to find and remove.\n\n`
+        : `They are named after the queries, with no prefix. Any name the tenant already has is left alone.\n\n`)
+      + (truncated ? `${truncated} names are cut to the ${SAVED_FILTER_MAX_NAME}-character limit by your prefix.\n\n` : '')
       + (skipped ? `${skipped} parameterised queries are skipped — saving them would freeze today's date into the filter.\n\n` : '')
       + `This writes to a shared tenant. Do not run it against a customer's production tenant without their agreement.`,
     );
     if (!ok) return;
 
+    // Without a prefix, a colleague's "Zombie Assets" looks exactly like ours.
+    // Leave existing names alone: saving over them could fail silently and the
+    // read-back would then pass on their filter, not ours.
+    const isWanted = (line) => wanted.has(line);
+    const existing = await adapter.listSavedFilterNames(isWanted);
+    if (!existing) {
+      toast('Could not read the Saved Filters list, so nothing was installed.', 7000);
+      return;
+    }
+    const already = [...wanted.keys()].filter((name) => existing.has(name));
+    for (const name of already) wanted.delete(name);
+
     let attempted = 0;
-    const failures = [];
-    const wanted = new Map();
-    for (const q of eligible) {
-      const name = savedFilterNameFor(q);
-      wanted.set(name, q.title);
+    const total = wanted.size;
+    for (const [name, q] of wanted) {
       try {
         await adapter.saveAsFilter(q.query, name);
         attempted++;
-        toast(`Saved ${attempted}/${eligible.length}: ${q.title}`, 1500);
+        toast(`Saved ${attempted}/${total}: ${q.title}`, 1500);
       } catch (e) {
         failures.push(`${q.title}: ${e.message}`);
+        wanted.delete(name);
         await adapter.cancelOverlay();
       }
       await sleep(400);
@@ -678,25 +710,21 @@
 
     // The app accepts a save silently and then discards it in some cases, so
     // read the list back rather than trusting that clicking Save worked.
-    const actual = await adapter.listSavedFilterNames(
-      (line) => [...wanted.keys()].some((name) => line.includes(name)),
-    );
-    if (actual) {
-      for (const [name, title] of wanted) {
-        const present = [...actual].some((n) => n.includes(name));
-        if (!present && !failures.some((f) => f.startsWith(title))) {
-          failures.push(`${title}: reported success but is not in the list`);
-        }
-      }
+    const actual = await adapter.listSavedFilterNames(isWanted);
+    let created = 0;
+    for (const [name, q] of wanted) {
+      if (!actual) break;
+      if (actual.has(name)) created++;
+      else failures.push(`${q.title}: reported success but is not in the list`);
     }
 
-    const created = wanted.size - failures.length;
-    toast(
-      failures.length
-        ? `Created ${created} of ${eligible.length}. ${failures.length} did not stick — see console.`
-        : `Created ${created} Saved Filters.`,
-      7000,
-    );
+    const parts = [
+      actual ? `Created ${created} Saved Filters.` : `Saved ${attempted}, but could not read the list back to check them.`,
+      already.length ? `${already.length} already existed and were left alone.` : '',
+      failures.length ? `${failures.length} failed — see console.` : '',
+    ];
+    toast(parts.filter(Boolean).join(' '), 7000);
+    if (already.length) console.info('[uaiql] Saved Filters already present, not touched:\n' + already.join('\n'));
     if (failures.length) console.warn('[uaiql] Saved Filter failures:\n' + failures.join('\n'));
   }
 

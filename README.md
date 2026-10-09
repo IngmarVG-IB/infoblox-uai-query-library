@@ -122,10 +122,11 @@ Read this before you use it:
 
 - It **writes to whichever tenant you are signed in to**. That is a shared, visible change — not a local one.
 - Filters are named after the queries, with short names that fit the product's 50-character limit. If you want them tagged so they are easy to find and remove from a shared tenant, run `localStorage.setItem('uaiql.prefix', '[Library]')` in the page's DevTools console before installing.
+- If the tenant already has a Saved Filter with the same name, that query is skipped and the existing filter is left alone. The console lists which ones.
 - Queries with editable boxes are skipped, because saving one would freeze today's date into it and quietly go stale.
 - **Do not run it against a customer's production tenant** without asking them first.
 
-To remove them afterwards: **Saved Filters → See All**, then use the row menu (⋮) → **Delete** on each filter this tool created (the names match the `savedFilterName` or title in `queries/catalog.json`, or carry your prefix if you set one). Delete happens immediately, with no confirmation prompt.
+To remove them afterwards: **Saved Filters → See All**, then use the row menu (⋮) → **Delete** on each filter this tool created (the names match the `savedFilterName` or title in `queries/catalog.json`, or carry your prefix if you set one). Without a prefix, a colleague may have a filter with the same name, so make sure each one is yours before deleting it. Delete happens immediately, with no confirmation prompt.
 
 This flow was run end to end against a live tenant when every filter still carried the `[Library]` prefix — all 22 eligible queries created successfully. The no-prefix default and the shorter names have not yet been run against a live tenant.
 
