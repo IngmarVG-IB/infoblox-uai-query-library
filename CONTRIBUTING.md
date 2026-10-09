@@ -38,7 +38,7 @@ Queries live in [`queries/catalog.json`](queries/catalog.json). Add an object to
 |---|---|---|
 | `id` | yes | Lower-case kebab-case, unique, never reused for a different query. |
 | `title` | yes | What appears in the panel. |
-| `savedFilterName` | sometimes | A shorter name for the Saved Filter install. **Required** when `[Library] ` plus the title exceeds 50 characters — the product silently discards longer names, with no error. The build fails if you forget. |
+| `savedFilterName` | sometimes | The name the query gets when installed as a Saved Filter. Set it when the title is long or reads badly in the Saved Filters list; leave it out if it would just repeat the title. **Required** when `[Library] ` plus the name exceeds 50 characters, since the product silently discards longer names with no error. It must also be unique across the catalog. The build fails if either check fails. |
 | `category` | yes | Reuse an existing one where it fits rather than inventing a near-duplicate. |
 | `query` | yes | The query text. Escape inner double quotes as `\"`. |
 | `description` | yes | What it finds and why it matters. Not a restatement of the query. |

@@ -17,8 +17,9 @@ const SRC = join(root, 'src', 'uai-query-library.user.js');
 const CATALOG = join(root, 'queries', 'catalog.json');
 const OUT = join(root, 'dist', 'uai-query-library.user.js');
 
-// Validate against the longest case: a user can opt in to a "[Library]" prefix
-// at runtime (localStorage 'uaiql.prefix'), which must still fit.
+// Validate against the documented opt-in prefix (localStorage 'uaiql.prefix').
+// Any prefix can be set at runtime; the install warns when a longer one makes
+// names truncate.
 const SAVED_FILTER_PREFIX = '[Library]';
 const SAVED_FILTER_MAX_NAME = 50;
 
@@ -31,6 +32,7 @@ const VALID_OPERATORS = [
 function validate(catalog) {
   const errors = [];
   const seen = new Set();
+  const savedNames = new Map();
 
   if (!catalog.catalogVersion) errors.push('catalogVersion is missing');
   if (!Array.isArray(catalog.queries)) return ['queries must be an array'];
@@ -85,6 +87,11 @@ function validate(catalog) {
           + `Add a shorter "savedFilterName".`,
         );
       }
+      // The install reads names back to check each save stuck, so two
+      // queries sharing a name would hide a failure.
+      const base = q.savedFilterName || q.title;
+      if (savedNames.has(base)) errors.push(`${at}: Saved Filter name "${base}" is also used by ${savedNames.get(base)}`);
+      savedNames.set(base, at);
     }
   }
   return errors;
