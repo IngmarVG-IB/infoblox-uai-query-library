@@ -11,6 +11,8 @@ This page covers the provider layer: how a field path is built, how to find out 
 
 Like the rest of `docs/`, none of this is official Infoblox documentation. It comes from inspecting live tenants.
 
+For a gentler introduction, including where to find an asset's raw attributes in the portal, see [Queries for beginners](queries-for-beginners.md#part-2-provider-fields).
+
 ## How a path is built
 
 A provider field is addressed as

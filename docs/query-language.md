@@ -2,6 +2,8 @@
 
 Notes on the Asset Inventory **Advanced Mode** filter language, gathered by inspecting a live tenant. This is not official documentation and Infoblox may change any of it without notice.
 
+New to queries? Start with [Queries for beginners](queries-for-beginners.md).
+
 The filter bar is a [Monaco](https://microsoft.github.io/monaco-editor/) editor whose language id is **`filterel`**. Queries are compiled client-side into [Cube.js](https://cube.dev/) queries against an `AssetDetails_ch_agg` cube.
 
 ## Shape of a query
