@@ -63,6 +63,8 @@ crowdstrike_falcon.crowdstrike_falcon_devices.device_policies.firewall.applied !
 
 **Autocomplete is tenant-scoped.** The editor only offers namespaces and values that exist in the tenant you are signed in to. A tenant with no Jamf integration will not suggest — and cannot usefully filter on — `jamf.*`.
 
+How these paths are built, how to find the fields a tenant has, the rules for filtering on them, and a reference of every provider field seen in a demo tenant are all in **[Provider fields](provider-fields.md)**.
+
 ## Operators
 
 | Kind | Operators |

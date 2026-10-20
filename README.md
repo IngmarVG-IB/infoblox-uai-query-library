@@ -201,6 +201,7 @@ Contributions are welcome, and you do not need to be a developer. See **[CONTRIB
 ## Also here
 
 - **[Query language reference](docs/query-language.md)** — the fields, operators and values available in Advanced Mode, written down in one place because they are not documented anywhere else.
+- **[Provider fields](docs/provider-fields.md)** — filtering on the raw data each integration reports (AWS, Azure, GCP, Meraki and more): how the paths are built, how to find them, and a reference of over a thousand fields.
 
 ## Licence
 
