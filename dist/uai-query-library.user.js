@@ -948,18 +948,25 @@
       await sleep(1600);
       const seeAll = [...document.querySelectorAll('.cdk-overlay-container *')]
         .find((e) => e.offsetParent && !e.children.length && /see all/i.test(e.textContent.trim()));
-      if (seeAll) { seeAll.click(); await sleep(2000); }
-
+      // The container exists once any overlay has opened, including the
+      // dropdown just clicked, so its presence proves nothing. Without See All
+      // the full list never rendered: report unknown rather than an empty list.
       const overlay = document.querySelector('.cdk-overlay-container');
-      if (!overlay) return null;
+      if (!seeAll || !overlay) {
+        document.querySelector('.cdk-overlay-backdrop')?.click();
+        return null;
+      }
+      seeAll.click();
+      await sleep(2000);
 
       // The list virtualises, so scroll it through to see every row.
       const pane = [...overlay.querySelectorAll('div')]
         .filter((d) => d.offsetParent && d.scrollHeight > d.clientHeight + 50)
         .pop();
       const names = new Set();
+      // Table rows put every cell on one line, tab-separated; the name is first.
       const harvest = () => overlay.innerText.split('\n')
-        .map((s) => s.trim())
+        .map((s) => s.split('\t')[0].trim())
         .filter((s) => s && isMine(s))
         .forEach((s) => names.add(s));
       harvest();
@@ -1267,6 +1274,7 @@
       + (prefix
         ? `Each is named with the "${prefix}" prefix so they are easy to find and remove.\n\n`
         : `They are named after the queries, with no prefix. Any name the tenant already has is left alone.\n\n`)
+      + (failures.length ? `${failures.length} are skipped because their names are the same once cut to ${SAVED_FILTER_MAX_NAME} characters.\n\n` : '')
       + (truncated ? `${truncated} names are cut to the ${SAVED_FILTER_MAX_NAME}-character limit by your prefix.\n\n` : '')
       + (skipped ? `${skipped} parameterised queries are skipped — saving them would freeze today's date into the filter.\n\n` : '')
       + `This writes to a shared tenant. Do not run it against a customer's production tenant without their agreement.`,
