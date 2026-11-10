@@ -34,7 +34,7 @@ Two tenants inspected on the same day presented noticeably different **autocompl
 | `Classifications` shown as | `Zombie`, `Noncompliant` | `zombie`, `oseol`, `oseos`, `oseossec`, `compliance`, `registration` |
 | `MissingRecords` shown as | `DNS Forward Record`, `DNS Pointer Record`, `IPAM` | `missingdnsforwardrecord`, `missingdnsreverserecord` |
 | Providers integrated | AWS, Azure, GCP, DHCP Logs, Infoblox Endpoint, NIOS | + ServiceNow, CrowdStrike, Intune, Jamf, Tenable, Meraki, Mist, Ordr, Aruba |
-| Extra fields | — | `Category` (`Compute`, `Device`, `IoT`, `Network`, `Service`) |
+| Extra fields | — | `Category` (see [Value vocabularies](#value-vocabularies)) |
 
 **Queries are portable anyway.** Both differences are cosmetic, confirmed by comparing result counts on tenant B:
 
@@ -126,6 +126,19 @@ Values below are those the product defines. Which ones actually appear depends o
 **`Classifications`** — UAI's own insight taxonomy: `Zombie`, `Noncompliant`, `EMPTY`
 
 **`SubClassifications`** — `Orphan`, `Public Access`, `Unencrypted`, `Resource Utilization Idle`, `Resource Utilization Low`, `EMPTY`
+
+**`Category`** — `Compute`, `Device`, `IoT`, `Network`, `Service`, `Unverified`. Not present on every tenant.
+
+The Category tree on the left of Asset Inventory shows `Unverified` as **Unknown**, and only the tree uses that name. To filter on it in Advanced Mode, write the stored value:
+
+```
+asset.Category IN ["Unverified"]    → matches the tree's "Unknown" node
+asset.Category IN ["Unknown"]       → matches nothing
+```
+
+Choosing Unknown in Basic Mode works, so this only catches you when you type the query by hand. The usual rule that a field accepts either the label or the stored value does not help here: "Unknown" and "Unverified" are different words, not two spellings of one. This looks like a product bug; until it is fixed, treat the tree label as unreliable for this one value.
+
+`Unverified` is, in practice, the set of unmanaged assets. The tree shows it as a sibling of the Managed node, not a child of it. On one tenant the five categories under Managed summed exactly to the Managed count (207,126), and Managed plus Unknown (6,941) equalled All (214,067). On another, all 536 `unverified` assets had `managed = false`. Adding `Managed IS False` to a `Category IN ["Unverified"]` query therefore changes nothing.
 
 **`Type`** — the device taxonomy:
 
