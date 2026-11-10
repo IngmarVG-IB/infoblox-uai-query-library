@@ -1,6 +1,6 @@
 {
   "$schema": "./schema.json",
-  "catalogVersion": "0.1.0",
+  "catalogVersion": "0.2.0",
   "queries": [
     {
       "id": "missing-from-servicenow",
@@ -358,6 +358,24 @@
       "verified": "syntax-only"
     },
     {
+      "id": "low-confidence-insights",
+      "title": "Assets with a Low-Confidence Insight",
+      "savedFilterName": "Low-Confidence Insights",
+      "category": "Insight Classifications",
+      "query": "asset.Confidence IN [\"Low\"]",
+      "description": "Assets carrying at least one insight that UAI rates as low confidence. Confidence belongs to each insight, not to the asset's identification, so this is a list of findings to check before acting on them. Expect a large overlap with the missing-DNS queries: on the tenant checked, every missing-record insight was rated Low.",
+      "bestUsedFor": "Triage before a remediation push, to separate the findings worth acting on straight away from those to confirm first.",
+      "tags": [
+        "confidence",
+        "insights",
+        "triage",
+        "data-quality"
+      ],
+      "requiresProviders": [],
+      "source": "derived",
+      "verified": "syntax-only"
+    },
+    {
       "id": "stale-assets",
       "title": "Assets Not Seen Recently",
       "category": "Discovery Hygiene",
@@ -400,23 +418,6 @@
       "requiresProviders": [],
       "source": "derived",
       "verified": "counted"
-    },
-    {
-      "id": "low-confidence-identification",
-      "title": "Assets Identified with Low Confidence",
-      "savedFilterName": "Low-Confidence ID",
-      "category": "Discovery Hygiene",
-      "query": "asset.Confidence IN [\"Low\", \"EMPTY\"]",
-      "description": "Assets whose identification UAI is not confident about. Distinct from unclassified: these have a guessed type that may well be wrong, so they are the records most likely to mislead an inventory report.",
-      "bestUsedFor": "Data-quality conversations with teams who plan to drive automation off asset attributes.",
-      "tags": [
-        "confidence",
-        "data-quality",
-        "discovery"
-      ],
-      "requiresProviders": [],
-      "source": "derived",
-      "verified": "syntax-only"
     },
     {
       "id": "no-serial-number",
@@ -542,7 +543,7 @@
       "title": "IoT and OT Devices on the Network",
       "savedFilterName": "IoT / OT Devices",
       "category": "Estate Composition",
-      "query": "asset.Type IN [\"Generic IoT\", \"Surveillance Camera\", \"Smart TV\", \"Smart Speaker\", \"Smart Plug\", \"Smart Door Bell\", \"Smart Controller\", \"Set-Top-Box\", \"Streaming Device\", \"VoIP Phone\", \"Printer\", \"PDU\"]",
+      "query": "asset.Type IN [\"Generic IoT\", \"Surveillance Camera\", \"Smart TV\", \"Smart Speaker\", \"Smart Plug\", \"Smart Door Bell\", \"Smart Controller\", \"Set-Top-Box\", \"Streaming Device\", \"VoIP Phone\", \"Printer\", \"PDU\", \"Smart Appliance\", \"Smart Lighting\", \"Smart Thermostat\"]",
       "description": "Every device class that generally cannot run an agent: cameras, printers, phones, building controllers, smart-home hardware. None of it will ever appear in an EDR console, so for most organisations this is the part of the estate no security tool inventories.",
       "bestUsedFor": "IoT and OT visibility conversations, especially where the security stack is entirely agent-based.",
       "tags": [
@@ -561,8 +562,8 @@
       "title": "Network Infrastructure Inventory",
       "savedFilterName": "Network Infrastructure",
       "category": "Estate Composition",
-      "query": "asset.Type IN [\"Router\", \"Switch\", \"Wireless Access Point\", \"Gateway\", \"VPN Gateway\"]",
-      "description": "The routing, switching and wireless estate as UAI sees it. Useful as a cross-check against whatever the network team believes is deployed, and as the denominator for network-device lifecycle work.",
+      "query": "asset.Type IN [\"Router\", \"Switch\", \"Wireless Access Point\", \"Gateway\", \"VPN Gateway\", \"Firewall\", \"Network Component\"]",
+      "description": "The routing, switching, firewall and wireless estate as UAI sees it. Useful as a cross-check against whatever the network team believes is deployed, and as the denominator for network-device lifecycle work.",
       "bestUsedFor": "Network-team conversations, and reconciling discovered infrastructure against the documented topology.",
       "tags": [
         "network",

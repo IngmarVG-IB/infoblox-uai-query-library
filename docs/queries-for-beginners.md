@@ -39,7 +39,7 @@ Read it aloud: *"assets whose type is one of: Laptop."*
 |---|---|---|
 | `IN [...]` | is one of these | `asset.OSType IN ["Windows", "macOS"]` |
 | `NOTIN [...]` | is none of these | `asset.Providers NOTIN ["ServiceNow"]` |
-| `=` or `IS` | is exactly | `asset.Confidence IS "Low"` |
+| `=` or `IS` | is exactly | `asset.OverallStatus IS "ERROR"` |
 | `CONTAINS` | has this inside it | `asset.Name CONTAINS "lab"` |
 | `AFTERDATE` | later than a date | `asset.LastSeen AFTERDATE 10-01-2026` |
 | `BEFOREDATE` | earlier than a date | `asset.LastSeen BEFOREDATE 09-01-2026` |
@@ -53,10 +53,10 @@ Read it aloud: *"assets whose type is one of: Laptop."*
   asset.Type IN ["Laptop"] AND asset.OSType IN ["Windows"]
   ```
 
-- `OR`: either one is enough. *Zombie assets, or ones UAI has low confidence in:*
+- `OR`: either one is enough. *Zombie assets, or ones reporting an error:*
 
   ```
-  asset.Classifications IN ["Zombie"] OR asset.Confidence IN ["Low"]
+  asset.Classifications IN ["Zombie"] OR asset.OverallStatus IN ["ERROR"]
   ```
 
 - **Brackets** group conditions when you mix the two, just as in arithmetic:

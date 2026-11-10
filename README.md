@@ -161,9 +161,9 @@ If you cannot install a browser extension, you can still use the queries — the
 | Publicly Accessible Assets | Insight Classifications |
 | Idle and Underused Cloud Resources | Insight Classifications |
 | Assets Classified as Noncompliant | Insight Classifications |
+| Assets with a Low-Confidence Insight | Insight Classifications |
 | Assets Not Seen Recently | Discovery Hygiene |
 | Unclassified Assets | Discovery Hygiene |
-| Assets Identified with Low Confidence | Discovery Hygiene |
 | Assets with No Serial Number | Discovery Hygiene |
 | Assets Reporting an Error State | Discovery Hygiene |
 | Operating Systems Past End of Life | Lifecycle & Patch Hygiene |

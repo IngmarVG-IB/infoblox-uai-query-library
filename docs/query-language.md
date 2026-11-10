@@ -33,7 +33,7 @@ Two tenants inspected on the same day presented noticeably different **autocompl
 | `asset.` autocomplete | full field list | nothing |
 | `Classifications` shown as | `Zombie`, `Noncompliant` | `zombie`, `oseol`, `oseos`, `oseossec`, `compliance`, `registration` |
 | `MissingRecords` shown as | `DNS Forward Record`, `DNS Pointer Record`, `IPAM` | `missingdnsforwardrecord`, `missingdnsreverserecord` |
-| Providers integrated | AWS, Azure, GCP, DHCP Logs, Infoblox Endpoint, NIOS | + ServiceNow, CrowdStrike, Intune, Jamf, Tenable, Meraki, Mist, Ordr, Aruba |
+| Providers integrated | AWS, Azure, GCP, DHCP Logs, Infoblox Endpoint, NIOS (since relabelled `NIOS Grid`, with `NIOS-X Discovery` added) | + ServiceNow, CrowdStrike, Intune, Jamf, Tenable, Meraki, Mist, Ordr, Aruba |
 | Extra fields | — | `Category` (see [Value vocabularies](#value-vocabularies)) |
 
 **Queries are portable anyway.** Both differences are cosmetic, confirmed by comparing result counts on tenant B:
@@ -91,7 +91,7 @@ asset.SerialNumber IS "EMPTY"
 
 ## `asset.` fields
 
-The normalised schema, as offered by autocomplete:
+The normalised schema, as offered by autocomplete when this page was first written:
 
 ```
 CIDR                      LocationType              OSEndOfSecuritySupport
@@ -106,14 +106,36 @@ IPAddresses               OSEndOfLife               SerialNumber
 LastSeen                  OSEndOfSale               Source
 LastSync                  SubClassifications        Tags
 Location                  Type                      UserCount
-                                                    Vendor
+Category                                            Vendor
 ```
+
+### Fields the cube now exposes
+
+Each Advanced Mode field reads one dimension of the `AssetDetails_ch_agg` cube, and the dimension's title in the cube metadata is the field name: `Type` reads the dimension titled *Type*, `MissingRecords` the one titled *MissingRecords*, and so on for every field above. Read that way, the cube (checked 2026-11-09 through the Infoblox MCP server) has fields the list above does not:
+
+| Area | Field names, by cube title |
+|---|---|
+| Hardware lifecycle | `DeviceEndOfLife`, `DeviceEndOfSale`, `DeviceEndOfSecuritySupport`, `DeviceReleaseDate` |
+| OS lifecycle | `OSEndOfStandardSupport`, `OSReleaseDate`, `OSLatestVersionDate` |
+| Hardware | `CPUCount`, `CPUCoreCount`, `CPUSpeedMHz`, `CPUArchitecture`, `CPUModel`, `TotalMemory`, `TotalDiskSpace`, `DiskCount`, `DiskType`, `StorageVolumeState`, `StorageVolumeType`, `StorageVolumeSize` |
+| Discovery health | `ReachedStatus`, `FingerPrintStatus`, `SNMPCollectionEnabled`, `SNMPCredentialStatus`, `SNMPCollectionStatus`, `CLICollectionEnabled`, `CLICredentialStatus`, `SDNCollectionEnabled`, `SDNCollectionStatus` |
+| Insights | `Indicator`, `IndicatorRuleID`, `Severity`, `Violations` |
+| Sources and tags | `Provider`, `ProviderLabel`, `SecondaryProviders`, `UserTags`, `SystemTags`, `PerspectiveTags` |
+
+None of these has been typed into the filter bar yet, so treat the names as likely rather than confirmed, and check autocomplete first. One may be a rename: the cube has `OSEndOfStandardSupport` and no `OSEndOfSale`, so `asset.OSEndOfSale` above may no longer work.
+
+The mapping also explains two fields whose names mislead:
+
+| Field | Cube dimension | What it actually holds |
+|---|---|---|
+| `Category` | `taxonomy_super_categories` | the taxonomy category. The older `super_category` dimension is titled `Category_old` and holds different values (`devices`, `services`), so do not use it to check a `Category` count. |
+| `Confidence` | `insight_confidences` | the confidence of each **insight** on the asset, one entry per insight. It is not a measure of how confidently the asset was identified. |
 
 ## Value vocabularies
 
 Values below are those the product defines. Which ones actually appear depends on the tenant.
 
-**`Confidence`** — `High`, `Medium`, `Low`, `EMPTY`
+**`Confidence`** — `High`, `Medium`, `Low`, `EMPTY`. A per-insight value, not an identification score: an asset with three insights carries three entries, and `EMPTY` means the asset has no insights at all. On one tenant, missing-DNS insights were all `Low`, so `Confidence IN ["Low"]` largely repeated the missing-record queries, and `["Low", "EMPTY"]` matched about 80% of the estate.
 
 **`OverallStatus`** — `OK`, `ERROR`, `EMPTY`
 
@@ -123,9 +145,9 @@ Values below are those the product defines. Which ones actually appear depends o
 
 **`OSType`** — `Windows`, `macOS`, `Linux`, `iOS`, `iPadOS`, `Android`, `VMware`, `Network OS`, `Embedded`, `Tizen`, `Axis`, `EMPTY`
 
-**`Classifications`** — UAI's own insight taxonomy: `Zombie`, `Noncompliant`, `EMPTY`
+**`Classifications`** — UAI's own insight taxonomy: `Zombie`, `Noncompliant`, `Lifecycle`, `Unregistered`, `Ghost`, `AI Workload`, `EMPTY`. Labels and stored codes differ for some: `Noncompliant` is stored as `Compliance`, `Unregistered` as `Registration`, `AI Workload` as `AIWorkload`.
 
-**`SubClassifications`** — `Orphan`, `Public Access`, `Unencrypted`, `Resource Utilization Idle`, `Resource Utilization Low`, `EMPTY`
+**`SubClassifications`** — `Orphan`, `Public Access`, `Unencrypted`, `Resource Utilization Idle`, `Resource Utilization Low`, `Unregistered`, `Supported OS`, `Unsupported OS`, `Unavailable`, `ML Workload`, `Framework Detection`, `Network Patterns`, `EMPTY`
 
 **`Category`** — `Compute`, `Device`, `IoT`, `Network`, `Service`, `Unverified`. Not present on every tenant.
 
@@ -138,7 +160,9 @@ asset.Category IN ["Unknown"]       → matches nothing
 
 Choosing Unknown in Basic Mode works, so this only catches you when you type the query by hand. The usual rule that a field accepts either the label or the stored value does not help here: "Unknown" and "Unverified" are different words, not two spellings of one. This looks like a product bug; until it is fixed, treat the tree label as unreliable for this one value.
 
-`Unverified` is, in practice, the set of unmanaged assets. The tree shows it as a sibling of the Managed node, not a child of it. On one tenant the five categories under Managed summed exactly to the Managed count (207,126), and Managed plus Unknown (6,941) equalled All (214,067). On another, all 536 `unverified` assets had `managed = false`. Adding `Managed IS False` to a `Category IN ["Unverified"]` query therefore changes nothing.
+Every `Unverified` asset is unmanaged, which is why the tree shows it as a sibling of the Managed node rather than a child of it. On one tenant the five categories under Managed summed exactly to the Managed count (207,126), and Managed plus Unknown (6,941) equalled All (214,067). On another, all 536 `Unverified` assets had `managed = false`. Adding `Managed IS False` to a `Category IN ["Unverified"]` query therefore changes nothing.
+
+The reverse does not hold: not every unmanaged asset is `Unverified`. On the second tenant, 3 of 539 unmanaged assets were categorised `Service`. Use `Managed IS False` when you mean unmanaged.
 
 **`Type`** — the device taxonomy:
 
@@ -151,9 +175,12 @@ End User Device        Printer                       Smartphone          Unclass
 Gateway                Public IP Address             Storage Bucket      Virtual Machine
 Generic IoT            Router                        Storage Volume      VoIP Phone
 Hypervisor Host        Server                        Set-Top-Box         VPN Gateway
-                       Smart Controller                                  Wireless Access Point
-                                                                         Workstation
+Firewall               Smart Controller              Smart Appliance     Wireless Access Point
+Network Component      Smart Lighting                Smart Thermostat    Workstation
+Thin Client
 ```
+
+`Firewall`, `Network Component`, `Smart Appliance`, `Smart Lighting`, `Smart Thermostat` and `Thin Client` were added to this list in November 2026, after they appeared in tenant data.
 
 ## Behaviour worth knowing
 
